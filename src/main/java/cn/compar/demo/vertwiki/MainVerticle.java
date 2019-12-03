@@ -1,4 +1,4 @@
-package io.vertx.starter;
+package cn.compar.demo.vertwiki;
 
 import io.vertx.core.AbstractVerticle;
 
