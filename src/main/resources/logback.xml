@@ -9,6 +9,7 @@
     <logger name="io.netty" level="warn" />
     <logger name="io.vertx" level="info" />
     <logger name="cn.compar.demo.vertwiki" level="debug" />
+    <logger name="freemarker" level="debug" />
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>

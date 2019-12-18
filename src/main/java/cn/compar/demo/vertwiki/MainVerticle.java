@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
@@ -26,12 +27,12 @@ public class MainVerticle extends AbstractVerticle {
 	private static final String SQL_DELETE_PAGE = "delete from Pages where Id = ?";
 	private JDBCClient dbClient;
 	private static final Logger LOGGER = LoggerFactory.getLogger(MainVerticle.class);
-	private final FreeMarkerTemplateEngine templateEngine = FreeMarkerTemplateEngine.create(this.vertx);
+	private final FreeMarkerTemplateEngine templateEngine = FreeMarkerTemplateEngine.create(Vertx.vertx());
 
 	@Override
-	public void start(Future<Void> startFuture) throws Exception {
+	public void start(Future<Void> startFuture) throws Exception {		
 		Future<Void> steps = prepareDatabase().compose(v -> startHttpServer());
-		steps.setHandler(startFuture.completer());
+		steps.setHandler(startFuture.completer());		
 	}
 
 	private Future<Void> prepareDatabase() {
@@ -91,7 +92,9 @@ public class MainVerticle extends AbstractVerticle {
 								.collect(Collectors.toList());
 						context.put("title", "Wiki home");
 						context.put("pages", pages);
-						templateEngine.render(context.data(),  "/templates/index.ftl", ar -> {
+						JsonObject jsonRoot = new JsonObject();
+						jsonRoot.put("context", context.data());
+						templateEngine.render(jsonRoot ,  "/templates/index.ftl", ar -> {
 							if (ar.succeeded()) {
 								context.response().putHeader("Content-Type", "text/html");
 								context.response().end(ar.result());
