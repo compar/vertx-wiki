@@ -3,10 +3,10 @@ package cn.compar.demo.vertwiki;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cn.compar.demo.vertwiki.database.WikiDatabaseVerticle;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
-import io.vertx.ext.jdbc.JDBCClient;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -20,7 +20,7 @@ public class MainVerticle extends AbstractVerticle {
 		
 		dbVerticleDeployment.compose(id -> {
 	        Future<String> httpVerticleDeployment = Future.future();
-	        vertx.deployVerticle("cn.compar.demo.vertwiki.HttpServerVerticle", 
+	        vertx.deployVerticle("cn.compar.demo.vertwiki.http.HttpServerVerticle", 
 	                new DeploymentOptions().setInstances(2), 
 	                httpVerticleDeployment.completer());
 	        return httpVerticleDeployment; 
