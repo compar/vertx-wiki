@@ -10,8 +10,8 @@ import com.github.rjeschke.txtmark.Processor;
 import cn.compar.demo.vertwiki.database.WikiDatabaseService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
@@ -28,7 +28,7 @@ public class HttpServerVerticle extends AbstractVerticle {
 	
 	private WikiDatabaseService dbService;
 	@Override
-	public void start(Future<Void> startFuture) throws Exception {
+	public void start(Promise<Void> startPromise) throws Exception {
 		String wikiDbQueue = config().getString(CONFIG_WIKIDB_QUEUE, "wikidb.queue"); 
 		dbService = WikiDatabaseService.createProxy(vertx, wikiDbQueue);
 
@@ -41,13 +41,13 @@ public class HttpServerVerticle extends AbstractVerticle {
 		router.post("/create").handler(this::pageCreateHandler);
 		router.post("/delete").handler(this::pageDeletionHandler);
 		int portNumber = config().getInteger(CONFIG_HTTP_SERVER_PORT, 8080);
-		server.requestHandler(router::accept).listen(portNumber, ar -> {
+		server.requestHandler(router).listen(portNumber, ar -> {
 			if (ar.succeeded()) {
 				LOGGER.info("HTTP server running on port " + portNumber);
-				startFuture.complete();
+				startPromise.complete();
 			} else {
 				LOGGER.error("Could not start a HTTP server", ar.cause());
-				startFuture.fail(ar.cause());
+				startPromise.fail(ar.cause());
 			}
 		});
 	}
@@ -74,7 +74,7 @@ public class HttpServerVerticle extends AbstractVerticle {
 
 //	# Apple
 //
-//	一个优秀的苹果！
+//	涓�涓紭绉�鐨勮嫻鏋滐紒
 //
 //	![An apple]
 //	(https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/265px-Red_Apple.jpg)
@@ -124,10 +124,9 @@ public class HttpServerVerticle extends AbstractVerticle {
 	            context.fail(reply.cause());
 	        }
 	    };
-	
-		boolean newPage = "yes".equals(context.request().getParam("newPage"));
+		
 
-		if ("yes".equals(newPage)) {
+		if ("yes".equals(context.request().getParam("newPage"))) {
 			dbService.createPage(title, markdown,handler);
 		} else {
 			 dbService.savePage(id,markdown, handler);

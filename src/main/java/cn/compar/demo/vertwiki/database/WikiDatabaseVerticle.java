@@ -6,11 +6,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.serviceproxy.ServiceBinder;
@@ -21,10 +18,10 @@ public class WikiDatabaseVerticle extends AbstractVerticle {
 	public static final String CONFIG_WIKIDB_JDBC_MAX_POOL_SIZE = "wikidb.jdbc.max_pool_size";
 	public static final String CONFIG_WIKIDB_SQL_QUERIES_RESOURCE_FILE = "wikidb.sqlqueries.resource.file";
 	public static final String CONFIG_WIKIDB_QUEUE = "wikidb.queue";
-	private static final Logger LOGGER = LoggerFactory.getLogger(WikiDatabaseVerticle.class);
+
 	
 	@Override
-	public void start(Future<Void> startFuture) throws Exception {
+	public void start(Promise<Void> promise) throws Exception {
 		HashMap<SqlQuery, String> sqlQueries = loadSqlQueries();
 		JDBCClient dbClient = JDBCClient.createShared(vertx, new JsonObject()
 				.put("url", config().getString(CONFIG_WIKIDB_JDBC_URL, "jdbc:hsqldb:file:db/wiki"))
@@ -36,9 +33,9 @@ public class WikiDatabaseVerticle extends AbstractVerticle {
 				ServiceBinder binder = new ServiceBinder(vertx);
 				binder.setAddress(CONFIG_WIKIDB_QUEUE)    //binder.setAddress(config().getString(CONFIG_WIKIDB_QUEUE,"wikidb.queue"))
 						.register(WikiDatabaseService.class, ready.result());
-				startFuture.complete();
+				promise.complete();
 			}else {
-				startFuture.fail(ready.cause());
+				promise.fail(ready.cause());
 			}
 		});
 		
