@@ -57,7 +57,6 @@ public class HttpServerVerticle extends AbstractVerticle {
 			if (reply.succeeded()) {
 				context.put("title", "Wiki home");
 				context.put("pages", reply.result().getList());
-				context.put("context", context.data());
 				templateEngine.render(context.data(), "/templates/index.ftl", ar -> {
 					if (ar.succeeded()) {
 						context.response().putHeader("Content-Type", "text/html");
@@ -74,7 +73,7 @@ public class HttpServerVerticle extends AbstractVerticle {
 
 //	# Apple
 //
-//	涓�涓紭绉�鐨勮嫻鏋滐紒
+//一个优秀的苹果！
 //
 //	![An apple]
 //	(https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Red_Apple.jpg/265px-Red_Apple.jpg)
@@ -95,7 +94,6 @@ public class HttpServerVerticle extends AbstractVerticle {
 				context.put("rawContent", rawContent);
 				context.put("content", Processor.process(rawContent));
 				context.put("timestamp", new Date().toString());
-				context.put("context", context.data());
 				templateEngine.render(context.data(), "/templates/page.ftl", ar -> {
 					if (ar.succeeded()) {
 						context.response().putHeader("Content-Type", "text/html");
