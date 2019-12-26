@@ -1,6 +1,7 @@
 package cn.compar.demo.vertwiki.database;
 
 import java.util.HashMap;
+import java.util.List;
 
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.ProxyGen;
@@ -25,6 +26,8 @@ public interface WikiDatabaseService {
     WikiDatabaseService savePage(int id, String markdown, Handler<AsyncResult<Void>> resultHandler);
     @Fluent
     WikiDatabaseService deletePage(int id, Handler<AsyncResult<Void>> resultHandler);
+    @Fluent
+    WikiDatabaseService fetchAllPagesData(Handler<AsyncResult<List<JsonObject>>> resultHandler);
     
     static WikiDatabaseService create(JDBCClient dbClient, HashMap<SqlQuery, String> sqlQueries, Handler<AsyncResult
     		<WikiDatabaseService>> readyHandler) {

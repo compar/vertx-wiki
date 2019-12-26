@@ -1,6 +1,7 @@
 package cn.compar.demo.vertwiki.database;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -143,6 +144,19 @@ public class WikiDatabaseServiceImpl implements WikiDatabaseService {
                         resultHandler.handle(Future.failedFuture(res.cause()));
                     }
                 });
+        return this;
+    }
+    
+    @Override
+    public WikiDatabaseService fetchAllPagesData(Handler<AsyncResult<List<JsonObject>>> resultHandler) {
+        dbClient.query(sqlQueries.get(SqlQuery.ALL_PAGES_DATA), queryResult -> {
+            if (queryResult.succeeded()) {
+                resultHandler.handle(Future.succeededFuture(queryResult.result().getRows()));
+            } else {
+                LOGGER.error("Database query error", queryResult.cause());
+                resultHandler.handle(Future.failedFuture(queryResult.cause()));
+            }
+        });
         return this;
     }
 }
