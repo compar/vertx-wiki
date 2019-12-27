@@ -12,6 +12,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.JksOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -35,7 +36,10 @@ import io.vertx.ext.web.codec.BodyCodec;
 			vertx.deployVerticle(new HttpServerVerticle(), context.asyncAssertSuccess());
 			webClient = WebClient.create(vertx, new WebClientOptions()
 				.setDefaultHost("localhost")
-				.setDefaultPort(8080));
+				.setDefaultPort(8080)
+				.setSsl(true)
+				.setTrustOptions(new JksOptions().setPath("server-keystore.jks").setPassword("secret")));
+
 		}
 		@After
 		public void finish(TestContext context) {
