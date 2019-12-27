@@ -79,10 +79,13 @@
 			<version>1.2.3</version>
 		</dependency>
 		<dependency>
-    <groupId>io.vertx</groupId>
-    <artifactId>vertx-web-client</artifactId>
-    <version>${vertx.version}</version>
-</dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-web-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.vertx</groupId>
+			<artifactId>vertx-auth-shiro</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
