@@ -28,6 +28,8 @@ public interface WikiDatabaseService {
     WikiDatabaseService deletePage(int id, Handler<AsyncResult<Void>> resultHandler);
     @Fluent
     WikiDatabaseService fetchAllPagesData(Handler<AsyncResult<List<JsonObject>>> resultHandler);
+    @Fluent
+		 WikiDatabaseService fetchPageById(int id, Handler<AsyncResult<JsonObject>> resultHandler);
     
     static WikiDatabaseService create(JDBCClient dbClient, HashMap<SqlQuery, String> sqlQueries, Handler<AsyncResult
     		<WikiDatabaseService>> readyHandler) {
@@ -37,4 +39,5 @@ public interface WikiDatabaseService {
     static WikiDatabaseService createProxy(Vertx vertx, String address) {
         return new WikiDatabaseServiceVertxEBProxy(vertx, address);
     }
+
 }

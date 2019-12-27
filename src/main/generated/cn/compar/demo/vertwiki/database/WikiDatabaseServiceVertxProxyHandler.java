@@ -43,6 +43,7 @@ import io.vertx.serviceproxy.HelperUtils;
 
 import io.vertx.core.json.JsonArray;
 import cn.compar.demo.vertwiki.database.WikiDatabaseService;
+import java.util.List;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -143,6 +144,15 @@ public class WikiDatabaseServiceVertxProxyHandler extends ProxyHandler {
         }
         case "deletePage": {
           service.deletePage(json.getValue("id") == null ? null : (json.getLong("id").intValue()),
+                        HelperUtils.createHandler(msg));
+          break;
+        }
+        case "fetchAllPagesData": {
+          service.fetchAllPagesData(HelperUtils.createListHandler(msg));
+          break;
+        }
+        case "fetchPageById": {
+          service.fetchPageById(json.getValue("id") == null ? null : (json.getLong("id").intValue()),
                         HelperUtils.createHandler(msg));
           break;
         }
