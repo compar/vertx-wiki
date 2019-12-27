@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import com.github.rjeschke.txtmark.Processor;
 
 import cn.compar.demo.vertwiki.database.WikiDatabaseService;
-import io.netty.handler.codec.http.HttpStatusClass;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -21,9 +20,14 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.ext.auth.AuthProvider;
+import io.vertx.ext.auth.KeyStoreOptions;
+import io.vertx.ext.auth.User;
+import io.vertx.ext.auth.jwt.JWTAuth;
+import io.vertx.ext.auth.jwt.JWTAuthOptions;
 import io.vertx.ext.auth.shiro.ShiroAuth;
 import io.vertx.ext.auth.shiro.ShiroAuthOptions;
 import io.vertx.ext.auth.shiro.ShiroAuthRealmType;
+import io.vertx.ext.jwt.JWTOptions;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpResponse;
@@ -32,11 +36,10 @@ import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.CookieHandler;
 import io.vertx.ext.web.handler.FormLoginHandler;
+import io.vertx.ext.web.handler.JWTAuthHandler;
 import io.vertx.ext.web.handler.RedirectAuthHandler;
 import io.vertx.ext.web.handler.SessionHandler;
-import io.vertx.ext.web.handler.UserSessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import io.vertx.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
@@ -81,10 +84,45 @@ public class HttpServerVerticle extends AbstractVerticle {
 			context.clearUser();
 			context.response().setStatusCode(302).putHeader("Location", "/").end();
 		});
-
+		
+	
+		
 		templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
 		Router apiRouter = Router.router(vertx);
+		JWTAuth jwtAuth = JWTAuth.create(vertx, new JWTAuthOptions()
+				  .setKeyStore(new KeyStoreOptions()
+				    .setPath("keystore.jceks")
+				    .setType("jceks")
+				    .setPassword("secret")));
+		apiRouter.route().handler(JWTAuthHandler.create(jwtAuth, "/api/token"));
+		apiRouter.get("/token").handler(context -> {
+		    JsonObject creds = new JsonObject()
+		        .put("username", context.request().getHeader("login"))
+		        .put("password", context.request().getHeader("password"));
+		    auth.authenticate(creds, authResult -> { 
+		        if (authResult.succeeded()) {
+		            User user = authResult.result(); 
+		            user.isAuthorized("create", canCreate -> { 
+		            user.isAuthorized("delete", canDelete -> {
+		                    user.isAuthorized("update", canUpdate -> {
+		                        String token = jwtAuth.generateToken( 
+		                            new JsonObject()
+		                            .put("username", context.request().getHeader("login"))
+		                            .put("canCreate", canCreate.succeeded() && canCreate.result())
+		                            .put("canDelete", canDelete.succeeded() && canDelete.result())
+		                            .put("canUpdate", canUpdate.succeeded() && canUpdate.result()),
+		                        new JWTOptions().setSubject("Wiki API").setIssuer("Vert.x"));
+		                        context.response().putHeader("Content-Type", "text/plain").end(token);
+		                    });
+		                }); 
+		            });
+		        }else{
+		            context.fail(401); 
+		        }
+		    }); 
+		});
+		
 		apiRouter.get("/pages").handler(this::apiRoot);
 		apiRouter.get("/pages/:id").handler(this::apiGetPage);
 		apiRouter.post().handler(BodyHandler.create());
