@@ -84,45 +84,38 @@ public class HttpServerVerticle extends AbstractVerticle {
 			context.clearUser();
 			context.response().setStatusCode(302).putHeader("Location", "/").end();
 		});
-		
-	
-		
+
 		templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
 		Router apiRouter = Router.router(vertx);
 		JWTAuth jwtAuth = JWTAuth.create(vertx, new JWTAuthOptions()
-				  .setKeyStore(new KeyStoreOptions()
-				    .setPath("keystore.jceks")
-				    .setType("jceks")
-				    .setPassword("secret")));
+				.setKeyStore(new KeyStoreOptions().setPath("keystore.jceks").setType("jceks").setPassword("secret")));
 		apiRouter.route().handler(JWTAuthHandler.create(jwtAuth, "/api/token"));
 		apiRouter.get("/token").handler(context -> {
-		    JsonObject creds = new JsonObject()
-		        .put("username", context.request().getHeader("login"))
-		        .put("password", context.request().getHeader("password"));
-		    auth.authenticate(creds, authResult -> { 
-		        if (authResult.succeeded()) {
-		            User user = authResult.result(); 
-		            user.isAuthorized("create", canCreate -> { 
-		            user.isAuthorized("delete", canDelete -> {
-		                    user.isAuthorized("update", canUpdate -> {
-		                        String token = jwtAuth.generateToken( 
-		                            new JsonObject()
-		                            .put("username", context.request().getHeader("login"))
-		                            .put("canCreate", canCreate.succeeded() && canCreate.result())
-		                            .put("canDelete", canDelete.succeeded() && canDelete.result())
-		                            .put("canUpdate", canUpdate.succeeded() && canUpdate.result()),
-		                        new JWTOptions().setSubject("Wiki API").setIssuer("Vert.x"));
-		                        context.response().putHeader("Content-Type", "text/plain").end(token);
-		                    });
-		                }); 
-		            });
-		        }else{
-		            context.fail(401); 
-		        }
-		    }); 
+			JsonObject creds = new JsonObject().put("username", context.request().getHeader("login")).put("password",
+					context.request().getHeader("password"));
+			auth.authenticate(creds, authResult -> {
+				if (authResult.succeeded()) {
+					User user = authResult.result();
+					user.isAuthorized("create", canCreate -> {
+						user.isAuthorized("delete", canDelete -> {
+							user.isAuthorized("update", canUpdate -> {
+								String token = jwtAuth.generateToken(
+										new JsonObject().put("username", context.request().getHeader("login"))
+												.put("canCreate", canCreate.succeeded() && canCreate.result())
+												.put("canDelete", canDelete.succeeded() && canDelete.result())
+												.put("canUpdate", canUpdate.succeeded() && canUpdate.result()),
+										new JWTOptions().setSubject("Wiki API").setIssuer("Vert.x"));
+								context.response().putHeader("Content-Type", "text/plain").end(token);
+							});
+						});
+					});
+				} else {
+					context.fail(401);
+				}
+			});
 		});
-		
+
 		apiRouter.get("/pages").handler(this::apiRoot);
 		apiRouter.get("/pages/:id").handler(this::apiGetPage);
 		apiRouter.post().handler(BodyHandler.create());
@@ -190,22 +183,26 @@ public class HttpServerVerticle extends AbstractVerticle {
 	}
 
 	private void apiCreatePage(RoutingContext context) {
-		JsonObject page = context.getBodyAsJson();
-		if (!validateJsonPageDocument(context, page, "name", "markdown")) {
-			return;
-		}
-		dbService.createPage(page.getString("name"), page.getString("markdown"), reply -> {
-			if (reply.succeeded()) {
-				context.response().setStatusCode(201);
-				context.response().putHeader("Content-Type", "application/json");
-				context.response().end(new JsonObject().put("success", true).encode());
-			} else {
-				context.response().setStatusCode(500);
-				context.response().putHeader("Content-Type", "application/json");
-				context.response()
-						.end(new JsonObject().put("success", false).put("error", reply.cause().getMessage()).encode());
+		if (context.user().principal().getBoolean("canCreate", false)) {
+			JsonObject page = context.getBodyAsJson();
+			if (!validateJsonPageDocument(context, page, "name", "markdown")) {
+				return;
 			}
-		});
+			dbService.createPage(page.getString("name"), page.getString("markdown"), reply -> {
+				if (reply.succeeded()) {
+					context.response().setStatusCode(201);
+					context.response().putHeader("Content-Type", "application/json");
+					context.response().end(new JsonObject().put("success", true).encode());
+				} else {
+					context.response().setStatusCode(500);
+					context.response().putHeader("Content-Type", "application/json");
+					context.response().end(
+							new JsonObject().put("success", false).put("error", reply.cause().getMessage()).encode());
+				}
+			});
+		} else {
+			context.fail(401);
+		}
 	}
 
 	private boolean validateJsonPageDocument(RoutingContext context, JsonObject page, String... expectedKeys) {
@@ -221,14 +218,18 @@ public class HttpServerVerticle extends AbstractVerticle {
 	}
 
 	private void apiUpdatePage(RoutingContext context) {
-		int id = Integer.valueOf(context.request().getParam("id"));
-		JsonObject page = context.getBodyAsJson();
-		if (!validateJsonPageDocument(context, page, "markdown")) {
-			return;
+		if (context.user().principal().getBoolean("canUpdate", false)) {
+			int id = Integer.valueOf(context.request().getParam("id"));
+			JsonObject page = context.getBodyAsJson();
+			if (!validateJsonPageDocument(context, page, "markdown")) {
+				return;
+			}
+			dbService.savePage(id, page.getString("markdown"), reply -> {
+				handleSimpleDbReply(context, reply);
+			});
+		} else {
+			context.fail(401);
 		}
-		dbService.savePage(id, page.getString("markdown"), reply -> {
-			handleSimpleDbReply(context, reply);
-		});
 	}
 
 	private void handleSimpleDbReply(RoutingContext context, AsyncResult<Void> reply) {
@@ -245,10 +246,14 @@ public class HttpServerVerticle extends AbstractVerticle {
 	}
 
 	private void apiDeletePage(RoutingContext context) {
-		int id = Integer.valueOf(context.request().getParam("id"));
-		dbService.deletePage(id, reply -> {
-			handleSimpleDbReply(context, reply);
-		});
+		if (context.user().principal().getBoolean("canDelete", false)) {
+			int id = Integer.valueOf(context.request().getParam("id"));
+			dbService.deletePage(id, reply -> {
+				handleSimpleDbReply(context, reply);
+			});
+		} else {
+			context.fail(401);
+		}
 	}
 
 	private void indexHandler(RoutingContext context) {
